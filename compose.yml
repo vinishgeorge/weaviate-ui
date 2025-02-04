@@ -1,14 +1,21 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  myapp:
+  weaviate-ui:
+    command: uvicorn weaviate_ui.main:app --host 0.0.0.0 --port 7777 --reload
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "7777:7777"
     environment:
-      - WEAVIATE_URL=http://localhost:8091
-      - WEAVIATE_API_KEYS=secret
-      - WEAVIATE_USERS=admin
-# apt update -y && apt install curl -y
+      - WEAVIATE_HOST=host.docker.internal
+      - WEAVIATE_PORT=8080
+      - WEAVIATE_SECURE=
+      - WEAVIATE_GRPC_HOST=host.docker.internal
+      - WEAVIATE_GRPC_PORT=50051
+      - WEAVIATE_GRPC_SECURE=
+      # - WEAVIATE_AUTH_CREDENTIALS=
+    volumes:
+      - ./weaviate_ui:/app/weaviate_ui
+      - ./frontend/dist:/app/static

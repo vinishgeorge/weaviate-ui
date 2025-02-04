@@ -18,34 +18,54 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-WEAVIATE_API_KEYS = os.getenv("WEAVIATE_API_KEYS", None)
-client = weaviate.Client(
-    url=os.getenv("WEAVIATE_URL"),
-    auth_client_secret=weaviate.AuthApiKey(api_key=WEAVIATE_API_KEYS) if WEAVIATE_API_KEYS else None,
+
+WEAVIATE_HOST = os.getenv("WEAVIATE_HOST")
+WEAVIATE_PORT = int(os.getenv("WEAVIATE_PORT"))
+WEAVIATE_SECURE = bool(os.getenv("WEAVIATE_SECURE"))
+WEAVIATE_GRPC_HOST = os.getenv("WEAVIATE_GRPC_HOST")
+WEAVIATE_GRPC_PORT = int(os.getenv("WEAVIATE_GRPC_PORT"))
+WEAVIATE_GRPC_SECURE = bool(os.getenv("WEAVIATE_GRPC_SECURE"))
+WEAVIATE_AUTH_CREDENTIALS = os.getenv("WEAVIATE_AUTH_CREDENTIALS", None)
+
+client = weaviate.connect_to_custom(
+    http_host=WEAVIATE_HOST,
+    http_port=WEAVIATE_PORT,
+    http_secure=WEAVIATE_SECURE,
+    grpc_host=WEAVIATE_GRPC_HOST,
+    grpc_port=WEAVIATE_GRPC_PORT,
+    grpc_secure=WEAVIATE_GRPC_SECURE,
+    auth_credentials=WEAVIATE_AUTH_CREDENTIALS,
 )
 
 
 @app.get("/schema")
-def schema() :
-    return client.schema.get()
+def schema():
+    return client.collections.list_all()
 
 
-@app.post("/class/{class_name}/{offset}/{limit}/{keyword}")
-def class0(class_name: str, offset: int, limit: int, keyword: str = '', properties: list[str] = None) :
-    builder = client.query.get(class_name, properties)
+@app.post("/class/{class_name}")
+def class0(
+    class_name: str,
+    offset: int = 0,
+    limit: int = 20,
+    keyword: str = "",
+    certainty: float = 0.5,
+    properties: list[str] | None = None,
+):
     logger.info(keyword)
-    if keyword != "none" :
-        builder = builder.with_near_text({"concepts" : [keyword]})
-    do = builder.with_additional(
-        "id").with_offset(offset).with_limit(limit).do()
-    count = client.query.aggregate(class_name).with_meta_count().do().get('data').get('Aggregate').get(class_name)[
-        0].get('meta').get('count')
-    logger.info(count)
-    return {
-        'data' : do.get('data').get('Get').get(
-            class_name),
-        'count' : count
-    }
+
+    collection = client.collections.get(class_name)
+    paginate = {"limit": limit, "offset": offset}
+
+    if keyword:
+        query = {"query": keyword, "certainty": certainty}
+        response = collection.query.near_text(**query, **paginate)
+        count_response = collection.aggregate.near_text(total_count=True, **query)
+    else:
+        response = collection.query.fetch_objects(**paginate)
+        count_response = collection.aggregate.over_all(total_count=True)
+
+    return {"data": response.objects, "count": count_response.total_count}
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
