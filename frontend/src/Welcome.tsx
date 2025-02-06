@@ -16,16 +16,16 @@ export default function () {
   const tableListDataSource = schemas.map((schema: Collection) => ({
     className: schema.name,
     description: schema.description,
-    vectorIndexType: Object.values(schema.vector_config)
+    vectorIndexType: null,
+    vectorizer: Object.values(schema.vector_config)
       .map((config) => config.vectorizer.vectorizer)
       .join(","),
-    vectorizer: schema.vectorizer,
     key: schema.name,
     detail: schema,
   }));
   const columns: ProColumns<any>[] = [
     {
-      title: "Class",
+      title: "Collection",
       dataIndex: "className",
     },
     {

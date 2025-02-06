@@ -4,8 +4,6 @@ import Welcome from "./Welcome.tsx";
 import {
   BorderlessTableOutlined,
   CrownFilled,
-  DashOutlined,
-  SmileFilled,
   TableOutlined,
 } from "@ant-design/icons";
 import { getSchema } from "./api.ts";
@@ -26,14 +24,11 @@ export default () => {
           path: "/schema",
           name: "Schema",
           icon: <BorderlessTableOutlined />,
-          component: <div>123</div>,
         },
         {
           path: "/class",
-          name: "Class",
+          name: "Collection",
           icon: <TableOutlined />,
-          access: "canAdmin",
-          component: "./Admin",
           routes: [],
         },
       ],
@@ -52,6 +47,11 @@ export default () => {
         name: schema.name,
         icon: <CrownFilled />,
       }));
+      routes.route.routes[1].routes.push({
+        key: "hidden-root",
+        path: "/",
+        hideInMenu: true,
+      }); // add a hidden root route so the sub menu will show by default
       setRoutes(_.cloneDeep(routes));
       let class2props = {};
       classes.forEach((schema: Collection) => {
