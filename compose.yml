@@ -16,4 +16,4 @@ services:
       # - WEAVIATE_AUTH_CREDENTIALS=
     volumes:
       - ./weaviate_ui:/app/weaviate_ui
-      - ./frontend/dist:/app/static
+      # - ./frontend/dist:/app/static # Uncomment this line if you want to use a local frontend build
