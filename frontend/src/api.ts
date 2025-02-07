@@ -13,9 +13,11 @@ export const getClass = (
   offset: number,
   limit: number,
   keyword: string,
+  certainty: number,
   properties: [any]
 ) => {
   const queryParams = new URLSearchParams({
+    certainty: certainty.toString(),
     offset: offset.toString(),
     limit: limit.toString(),
     keyword: keyword,

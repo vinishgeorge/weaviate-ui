@@ -49,7 +49,7 @@ def class0(
     offset: int = 0,
     limit: int = 20,
     keyword: str = "",
-    certainty: float = 0.5,
+    certainty: float = 0.65,
     properties: list[str] | None = None,
 ):
     logger.info(keyword)
@@ -59,7 +59,8 @@ def class0(
 
     if keyword:
         query = {"query": keyword, "certainty": certainty}
-        response = collection.query.near_text(**query, **paginate)
+        metadata = {"return_metadata": ["certainty", "distance"]}
+        response = collection.query.near_text(**query, **metadata, **paginate)
         count_response = collection.aggregate.near_text(total_count=True, **query)
     else:
         response = collection.query.fetch_objects(**paginate)

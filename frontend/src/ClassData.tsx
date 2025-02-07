@@ -1,10 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getClass } from "./api.ts";
-import { ActionType, ProTable } from "@ant-design/pro-components";
+import {
+  ActionType,
+  ProTable,
+  LightFilter,
+  ProFormSlider,
+  ProFormDatePicker,
+  QueryFilter,
+} from "@ant-design/pro-components";
 
 export default function ({ pathname, propties }: any) {
   let propertyNames = propties.map((x) => x.name);
+  let defaultCertainty = 0.65;
   const [keyword, setKeyword] = useState("");
+  const [certainty, setCertainty] = useState(defaultCertainty);
 
   let columns = [];
   columns.push({
@@ -31,21 +40,26 @@ export default function ({ pathname, propties }: any) {
         actionRef={ref}
         params={{ pathname: pathname }}
         columns={columns}
-        // dataSource={data}
         request={async (
           // 第一个参数 params 查询表单和 params 参数的结合
           // 第一个参数中一定会有 pageSize 和  current ，这两个参数是 antd 的规范
-          params: any,
+          params,
           sort,
           filter
         ) => {
+          const collection = pathname;
+          const offset = (params.current - 1) * params.pageSize;
+          const limit = params.pageSize;
+
           let clzData = await getClass(
-            pathname,
-            (params.current - 1) * params.pageSize,
-            params.pageSize,
+            collection,
+            offset,
+            limit,
             keyword,
+            certainty,
             propertyNames
           );
+
           let data = clzData.data.map((clz: any) => {
             let res = {};
 
@@ -67,7 +81,7 @@ export default function ({ pathname, propties }: any) {
         rowKey="key"
         dateFormatter="string"
         toolbar={{
-          title: "Class",
+          title: "Collection",
           tooltip: "",
           search: {
             onSearch: async (value: string) => {
@@ -75,9 +89,34 @@ export default function ({ pathname, propties }: any) {
               ref.current?.reload();
             },
           },
+          filter: (
+            <LightFilter
+              onFinish={async (values) =>
+                setCertainty(
+                  values.certainty ? values.certainty : defaultCertainty
+                )
+              }
+            >
+              <ProFormSlider
+                name="certainty"
+                label="Certainty"
+                initialValue={certainty}
+                step={0.01}
+                min={0}
+                max={1}
+                marks={{
+                  0.0: "0.0",
+                  0.2: "0.2",
+                  0.4: "0.4",
+                  0.6: "0.6",
+                  0.8: "0.8",
+                  1.0: "1.0",
+                }}
+              />
+            </LightFilter>
+          ),
         }}
         search={false}
-        toolBarRender={() => []}
       />
     </div>
   );
