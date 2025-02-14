@@ -17,7 +17,7 @@ export default function () {
     className: schema.name,
     description: schema.description,
     vectorIndexType: null,
-    vectorizer: Object.values(schema.vector_config)
+    vectorizer: Object.values(schema.vector_config || [])
       .map((config) => config.vectorizer.vectorizer)
       .join(","),
     key: schema.name,
