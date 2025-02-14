@@ -123,7 +123,7 @@ export default () => {
           ) : (
             <ClassData
               pathname={pathname}
-              propties={class2props[pathname]}
+              propties={class2props[pathname] || []}
             ></ClassData>
           )}
         </PageContainer>
