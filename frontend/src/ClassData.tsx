@@ -1,96 +1,123 @@
-import React, {useEffect, useRef, useState} from "react";
-import {getClass} from "./api.ts";
-import {ActionType, ProTable} from "@ant-design/pro-components";
+import React, { useEffect, useRef, useState } from "react";
+import { getClass } from "./api.ts";
+import {
+  ActionType,
+  ProTable,
+  LightFilter,
+  ProFormSlider,
+  ProFormDatePicker,
+  QueryFilter,
+} from "@ant-design/pro-components";
 
-export default function ({pathname, propties}: any) {
-    let propertyNames = propties.map(x => x.name);
-    const [keyword, setKeyword] = useState("none")
-    const [clzData, setClzData] = useState([])
-    const [total, setTotal] = useState(0)
+export default function ({ pathname, propties }: any) {
+  let propertyNames = propties.map((x) => x.name);
+  let defaultCertainty = 0.65;
+  const [keyword, setKeyword] = useState("");
+  const [certainty, setCertainty] = useState(defaultCertainty);
 
-    useEffect(() => {
+  let columns = [];
+  columns.push({
+    title: "Id",
+    dataIndex: "index",
+    ellipsis: true,
+  });
 
-            getClass(pathname, 0, 20, keyword, propertyNames).then(({data, count}) => {
-                setClzData(data)
-                setTotal(count)
-            })
-        }
-        , [pathname, keyword]
-    )
-    let columns = [];
+  propties.forEach((proptie: any) => {
     columns.push({
-        title: 'Id',
-        dataIndex: 'index',
-        width: 48,
-    },)
-
-    propties.forEach((proptie: any) => {
-        columns.push({
-            title: proptie.name,
-            dataIndex: proptie.name,
-        })
+      title: proptie.name,
+      dataIndex: proptie.name,
+      ellipsis: true,
+      renderText: (tags: string[] | string) => {
+        return Array.isArray(tags) ? tags.join(", ") : tags;
+      },
     });
+  });
 
-    let data = clzData.map((clz: any) => {
-        let res = {};
-        propertyNames.forEach((proptie: any) => {
-            res[proptie] = clz[proptie];
-        });
-        res['index'] = clz['_additional']['id'];
-        // set res['key'] a random value
-        res['key'] = Math.random();
-        return res;
-    });
-    const ref = useRef<ActionType>();
-    return <div>
-        <ProTable
-            actionRef={ref}
-            params={{pathname:pathname}}
-            columns={columns}
-            // dataSource={data}
-            request={async (
-                // 第一个参数 params 查询表单和 params 参数的结合
-                // 第一个参数中一定会有 pageSize 和  current ，这两个参数是 antd 的规范
-                params: any,
-                sort,
-                filter,
-            ) => {
+  const ref = useRef<ActionType>();
+  return (
+    <div>
+      <ProTable
+        actionRef={ref}
+        params={{ pathname: pathname }}
+        columns={columns}
+        request={async (
+          // 第一个参数 params 查询表单和 params 参数的结合
+          // 第一个参数中一定会有 pageSize 和  current ，这两个参数是 antd 的规范
+          params,
+          sort,
+          filter
+        ) => {
+          const collection = pathname;
+          const offset = (params.current - 1) * params.pageSize;
+          const limit = params.pageSize;
 
-                let clzData = await getClass(pathname, (params.current - 1) * params.pageSize, params.pageSize, keyword, propertyNames);
-                let data = clzData.data.map((clz: any) => {
-                    let res = {};
-                    propertyNames.forEach((proptie: any) => {
-                        res[proptie] = clz[proptie];
-                    });
-                    res['index'] = clz['_additional']['id'];
+          let clzData = await getClass(
+            collection,
+            offset,
+            limit,
+            keyword,
+            certainty,
+            propertyNames
+          );
 
-                    // set res['key'] a random value
-                    res['key'] = Math.random();
-                    return res;
-                });
-                console.log(clzData)
-                return {
-                    data: data,
-                    success: true,
-                    total: clzData.count,
-                };
-            }}
-            rowKey="key"
-            dateFormatter="string"
-            toolbar={{
-                title: 'Class',
-                tooltip: '',
-                search: {
-                    onSearch: async (value: string) => {
-                        setKeyword(value)
-                        ref.current?.reload()
+          let data = clzData.data.map((clz: any) => {
+            let res = {};
 
-                    },
-                },
-            }}
-            search={false}
-            toolBarRender={() => []}
-        />
+            propertyNames.forEach((proptie: any) => {
+              res[proptie] = clz.properties[proptie];
+            });
+
+            res["index"] = clz.uuid;
+            res["key"] = clz.uuid;
+
+            return res;
+          });
+          return {
+            data: data,
+            success: true,
+            total: clzData.count,
+          };
+        }}
+        rowKey="key"
+        dateFormatter="string"
+        toolbar={{
+          title: "Collection",
+          tooltip: "",
+          search: {
+            onSearch: async (value: string) => {
+              setKeyword(value);
+              ref.current?.reload();
+            },
+          },
+          filter: (
+            <LightFilter
+              onFinish={async (values) =>
+                setCertainty(
+                  values.certainty ? values.certainty : defaultCertainty
+                )
+              }
+            >
+              <ProFormSlider
+                name="certainty"
+                label="Certainty"
+                initialValue={certainty}
+                step={0.01}
+                min={0}
+                max={1}
+                marks={{
+                  0.0: "0.0",
+                  0.2: "0.2",
+                  0.4: "0.4",
+                  0.6: "0.6",
+                  0.8: "0.8",
+                  1.0: "1.0",
+                }}
+              />
+            </LightFilter>
+          ),
+        }}
+        search={false}
+      />
     </div>
+  );
 }
-
