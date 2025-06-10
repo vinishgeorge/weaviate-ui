@@ -3,7 +3,7 @@ import os
 import weaviate
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 WEAVIATE_API_KEYS = os.getenv("WEAVIATE_API_KEYS", None)
 client = weaviate.Client(
     url=os.getenv("WEAVIATE_URL"),

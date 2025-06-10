@@ -6,8 +6,10 @@ from fastapi import FastAPI
 from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
+from weaviate.classes.init import Auth
 
-load_dotenv()
+load_dotenv(override=True)
+print('../.env********************************************', os.getenv("WEAVIATE_HOST"))
 
 app = FastAPI()
 
@@ -34,7 +36,9 @@ client = weaviate.connect_to_custom(
     grpc_host=WEAVIATE_GRPC_HOST,
     grpc_port=WEAVIATE_GRPC_PORT,
     grpc_secure=WEAVIATE_GRPC_SECURE,
-    auth_credentials=WEAVIATE_AUTH_CREDENTIALS,
+    auth_credentials=Auth.api_key(
+                    WEAVIATE_AUTH_CREDENTIALS
+                ),
 )
 
 
