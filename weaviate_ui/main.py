@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
+from weaviate.classes.init import Auth
 
 load_dotenv()
 
@@ -21,20 +22,35 @@ app.add_middleware(
 
 WEAVIATE_HOST = os.getenv("WEAVIATE_HOST")
 WEAVIATE_PORT = int(os.getenv("WEAVIATE_PORT"))
-WEAVIATE_SECURE = bool(os.getenv("WEAVIATE_SECURE"))
+WEAVIATE_SECURE = bool(os.getenv("WEAVIATE_SECURE"))  # False if empty
 WEAVIATE_GRPC_HOST = os.getenv("WEAVIATE_GRPC_HOST")
 WEAVIATE_GRPC_PORT = int(os.getenv("WEAVIATE_GRPC_PORT"))
-WEAVIATE_GRPC_SECURE = bool(os.getenv("WEAVIATE_GRPC_SECURE"))
-WEAVIATE_AUTH_CREDENTIALS = os.getenv("WEAVIATE_AUTH_CREDENTIALS", None)
-
+WEAVIATE_GRPC_SECURE = bool(os.getenv("WEAVIATE_GRPC_SECURE"))  # False if empty
+WEAVIATE_USERNAME = os.getenv("WEAVIATE_USERNAME")
+WEAVIATE_PASSWORD = os.getenv("WEAVIATE_PASSWORD")
+print(
+    f"Connecting to Weaviate at {WEAVIATE_HOST}:{WEAVIATE_PORT} with secure={WEAVIATE_SECURE}"
+)
+print(f"password: {WEAVIATE_PASSWORD}")
+# client = weaviate.connect_to_custom(
+#     http_host=WEAVIATE_HOST,
+#     http_port=WEAVIATE_PORT,
+#     http_secure=WEAVIATE_SECURE,
+#     grpc_host=WEAVIATE_GRPC_HOST,
+#     grpc_port=WEAVIATE_GRPC_PORT,
+#     grpc_secure=WEAVIATE_GRPC_SECURE,
+#     # auth_credentials=WEAVIATE_AUTH_CREDENTIALS,
+#     auth_credentials=Auth.api_key(WEAVIATE_PASSWORD),
+# )
 client = weaviate.connect_to_custom(
-    http_host=WEAVIATE_HOST,
-    http_port=WEAVIATE_PORT,
-    http_secure=WEAVIATE_SECURE,
-    grpc_host=WEAVIATE_GRPC_HOST,
-    grpc_port=WEAVIATE_GRPC_PORT,
-    grpc_secure=WEAVIATE_GRPC_SECURE,
-    auth_credentials=WEAVIATE_AUTH_CREDENTIALS,
+    http_host=WEAVIATE_HOST,  # Your Kubernetes service hostname/IP
+    http_port=WEAVIATE_PORT,          # Default REST port, adjust if needed
+    http_secure=WEAVIATE_SECURE,        # Set to True for HTTPS, False for HTTP
+    grpc_host=WEAVIATE_GRPC_HOST,  # Usually the same as http_host
+    grpc_port=WEAVIATE_GRPC_PORT,         # Default gRPC port, adjust if needed
+    grpc_secure=WEAVIATE_GRPC_SECURE,        # Set to True for secure gRPC
+    auth_credentials=Auth.api_key(WEAVIATE_PASSWORD),
+    # headers=headers
 )
 
 
