@@ -47,24 +47,33 @@ def schema():
     return client.collections.list_all()
 
 
+@app.get("/class/{class_name}/tenants")
+def get_tenants(class_name: str):
+    collection = client.collections.get(class_name)
+    tenants = collection.tenants.get()
+    return {"tenants": list(tenants) if tenants else []}
+
+
 @app.post("/class/{class_name}")
-def class0(
+def get_class_data(
     class_name: str,
     offset: int = 0,
     limit: int = 20,
     keyword: str = "",
     certainty: float = 0.65,
     properties: list[str] | None = None,
+    tenant: str = "4",
 ):
     logger.info(keyword)
 
-    collection = client.collections.get(class_name)
+    collection = client.collections.get(class_name).with_tenant(tenant)
+    # tenant = collection.with_tenant(tenant)
     paginate = {"limit": limit, "offset": offset}
 
     if keyword:
         query = {"query": keyword, "certainty": certainty}
         metadata = {"return_metadata": ["certainty", "distance"]}
-        response = collection.query.near_text(**query, **metadata, **paginate)
+        response = tenant.query.near_text(**query, **metadata, **paginate)
         count_response = collection.aggregate.near_text(total_count=True, **query)
     else:
         response = collection.query.fetch_objects(**paginate)

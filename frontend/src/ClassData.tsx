@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getClass } from "./api.ts";
+import { getClass, getTenants } from "./api.ts";
 import {
   ActionType,
   ProTable,
@@ -8,12 +8,20 @@ import {
   ProFormDatePicker,
   QueryFilter,
 } from "@ant-design/pro-components";
+import { Select } from "antd";
 
 export default function ({ pathname, propties }: any) {
   let propertyNames = propties.map((x) => x.name);
   let defaultCertainty = 0.65;
   const [keyword, setKeyword] = useState("");
   const [certainty, setCertainty] = useState(defaultCertainty);
+  const [tenants, setTenants] = useState<string[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<string | undefined>();
+
+  useEffect(() => {
+    const className = pathname.split("/").pop();
+    getTenants(className).then(setTenants);
+  }, [pathname]);
 
   let columns = [];
   columns.push({
@@ -57,7 +65,8 @@ export default function ({ pathname, propties }: any) {
             limit,
             keyword,
             certainty,
-            propertyNames
+            propertyNames,
+            selectedTenant
           );
 
           let data = clzData.data.map((clz: any) => {
@@ -90,30 +99,42 @@ export default function ({ pathname, propties }: any) {
             },
           },
           filter: (
-            <LightFilter
-              onFinish={async (values) =>
-                setCertainty(
-                  values.certainty ? values.certainty : defaultCertainty
-                )
-              }
-            >
-              <ProFormSlider
-                name="certainty"
-                label="Certainty"
-                initialValue={certainty}
-                step={0.01}
-                min={0}
-                max={1}
-                marks={{
-                  0.0: "0.0",
-                  0.2: "0.2",
-                  0.4: "0.4",
-                  0.6: "0.6",
-                  0.8: "0.8",
-                  1.0: "1.0",
+            <>
+              <LightFilter
+                onFinish={async (values) =>
+                  setCertainty(
+                    values.certainty ? values.certainty : defaultCertainty
+                  )
+                }
+              >
+                <ProFormSlider
+                  name="certainty"
+                  label="Certainty"
+                  initialValue={certainty}
+                  step={0.01}
+                  min={0}
+                  max={1}
+                  marks={{
+                    0.0: "0.0",
+                    0.2: "0.2",
+                    0.4: "0.4",
+                    0.6: "0.6",
+                    0.8: "0.8",
+                    1.0: "1.0",
+                  }}
+                />
+              </LightFilter>
+              <Select
+                style={{ width: 200, marginLeft: 16 }}
+                placeholder="Select Tenant"
+                allowClear
+                onChange={(value) => {
+                  setSelectedTenant(value);
+                  ref.current?.reload();
                 }}
+                options={Array.isArray(tenants) ? tenants.map(tenant => ({ label: tenant, value: tenant })) : []}
               />
-            </LightFilter>
+            </>
           ),
         }}
         search={false}
