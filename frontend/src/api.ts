@@ -29,8 +29,10 @@ export const getClass = (
     offset: offset.toString(),
     limit: limit.toString(),
     keyword: keyword,
-    tenant: tenant || "4",
   });
+  if (tenant) {
+    queryParams.append("tenant", tenant);
+  }
   return fetch(`${host + className}?${queryParams.toString()}`, {
     method: "POST",
     headers: {
