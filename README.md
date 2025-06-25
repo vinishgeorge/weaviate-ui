@@ -11,7 +11,7 @@ Weaviate-UI is a web client for interacting with the Weaviate.
 
 ## Usage V4
 
-See `compose.yml` and adjust environment variables to your need. By default it will look for a locally hosted weaviate on the default 8080 port (without auth credentials).
+See `compose.yml` and adjust environment variables to your need. By default it will look for a locally hosted weaviate on the default 8080 port. Set `WEAVIATE_AUTH_CREDENTIALS` if authentication is required.
 
 ```bash
 $ docker-compose up

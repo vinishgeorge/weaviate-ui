@@ -9,7 +9,6 @@ from starlette.staticfiles import StaticFiles
 from weaviate.classes.init import Auth
 
 load_dotenv(override=True)
-print('../.env********************************************', os.getenv("WEAVIATE_HOST"))
 
 app = FastAPI()
 
@@ -29,10 +28,10 @@ WEAVIATE_GRPC_PORT = int(os.getenv("WEAVIATE_GRPC_PORT"))
 WEAVIATE_GRPC_SECURE = bool(os.getenv("WEAVIATE_GRPC_SECURE"))  # False if empty
 WEAVIATE_USERNAME = os.getenv("WEAVIATE_USERNAME")
 WEAVIATE_PASSWORD = os.getenv("WEAVIATE_PASSWORD")
-print(
+WEAVIATE_AUTH_CREDENTIALS = os.getenv("WEAVIATE_AUTH_CREDENTIALS")
+logger.info(
     f"Connecting to Weaviate at {WEAVIATE_HOST}:{WEAVIATE_PORT} with secure={WEAVIATE_SECURE}"
 )
-print(f"password: {WEAVIATE_PASSWORD}")
 # client = weaviate.connect_to_custom(
 #     http_host=WEAVIATE_HOST,
 #     http_port=WEAVIATE_PORT,
@@ -64,7 +63,10 @@ def schema():
 @app.get("/class/{class_name}/tenants")
 def get_tenants(class_name: str):
     collection = client.collections.get(class_name)
-    tenants = collection.tenants.get()
+    try:
+        tenants = collection.tenants.get()
+    except Exception:
+        tenants = []
     return {"tenants": list(tenants) if tenants else []}
 
 
@@ -76,22 +78,29 @@ def get_class_data(
     keyword: str = "",
     certainty: float = 0.65,
     properties: list[str] | None = None,
-    tenant: str = "4",
+    tenant: str | None = None,
 ):
     logger.info(keyword)
 
-    collection = client.collections.get(class_name).with_tenant(tenant)
-    # tenant = collection.with_tenant(tenant)
+    collection = client.collections.get(class_name)
+    tenant_collection = collection
+    if tenant:
+        try:
+            tenant_collection = collection.with_tenant(tenant)
+        except Exception:
+            logger.warning(
+                f"Tenant '{tenant}' ignored for class '{class_name}'"
+            )
     paginate = {"limit": limit, "offset": offset}
 
     if keyword:
         query = {"query": keyword, "certainty": certainty}
         metadata = {"return_metadata": ["certainty", "distance"]}
-        response = tenant.query.near_text(**query, **metadata, **paginate)
-        count_response = collection.aggregate.near_text(total_count=True, **query)
+        response = tenant_collection.query.near_text(**query, **metadata, **paginate)
+        count_response = tenant_collection.aggregate.near_text(total_count=True, **query)
     else:
-        response = collection.query.fetch_objects(**paginate)
-        count_response = collection.aggregate.over_all(total_count=True)
+        response = tenant_collection.query.fetch_objects(**paginate)
+        count_response = tenant_collection.aggregate.over_all(total_count=True)
 
     return {"data": response.objects, "count": count_response.total_count}
 
