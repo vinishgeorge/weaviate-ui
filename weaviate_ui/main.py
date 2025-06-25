@@ -83,7 +83,14 @@ def get_class_data(
     logger.info(keyword)
 
     collection = client.collections.get(class_name)
-    tenant_collection = collection.with_tenant(tenant) if tenant else collection
+    tenant_collection = collection
+    if tenant:
+        try:
+            tenant_collection = collection.with_tenant(tenant)
+        except Exception:
+            logger.warning(
+                f"Tenant '{tenant}' ignored for class '{class_name}'"
+            )
     paginate = {"limit": limit, "offset": offset}
 
     if keyword:

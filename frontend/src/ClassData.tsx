@@ -20,7 +20,10 @@ export default function ({ pathname, propties }: any) {
 
   useEffect(() => {
     const className = pathname.split("/").pop();
-    getTenants(className).then(setTenants);
+    getTenants(className).then((ts) => {
+      setTenants(ts);
+      setSelectedTenant(undefined);
+    });
   }, [pathname]);
 
   let columns = [];
