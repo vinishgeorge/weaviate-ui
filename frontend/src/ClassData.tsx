@@ -56,7 +56,7 @@ export default function ({ pathname, propties }: any) {
           // 第一个参数中一定会有 pageSize 和  current ，这两个参数是 antd 的规范
           params,
           sort,
-          filter
+          filter,
         ) => {
           const collection = pathname;
           const offset = (params.current - 1) * params.pageSize;
@@ -69,7 +69,7 @@ export default function ({ pathname, propties }: any) {
             keyword,
             certainty,
             propertyNames,
-            selectedTenant
+            selectedTenant,
           );
 
           let data = clzData.data.map((clz: any) => {
@@ -106,7 +106,7 @@ export default function ({ pathname, propties }: any) {
               <LightFilter
                 onFinish={async (values) =>
                   setCertainty(
-                    values.certainty ? values.certainty : defaultCertainty
+                    values.certainty ? values.certainty : defaultCertainty,
                   )
                 }
               >
@@ -131,11 +131,19 @@ export default function ({ pathname, propties }: any) {
                 style={{ width: 200, marginLeft: 16 }}
                 placeholder="Select Tenant"
                 allowClear
+                value={selectedTenant}
                 onChange={(value) => {
                   setSelectedTenant(value);
                   ref.current?.reload();
                 }}
-                options={Array.isArray(tenants) ? tenants.map(tenant => ({ label: tenant, value: tenant })) : []}
+                options={
+                  Array.isArray(tenants)
+                    ? tenants.map((tenant) => ({
+                        label: tenant,
+                        value: tenant,
+                      }))
+                    : []
+                }
               />
             </>
           ),
