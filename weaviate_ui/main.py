@@ -49,9 +49,7 @@ client = weaviate.connect_to_custom(
     grpc_host=WEAVIATE_GRPC_HOST,
     grpc_port=WEAVIATE_GRPC_PORT,
     grpc_secure=WEAVIATE_GRPC_SECURE,
-    auth_credentials=Auth.api_key(
-                    WEAVIATE_AUTH_CREDENTIALS
-                ),
+    auth_credentials=Auth.api_key(WEAVIATE_AUTH_CREDENTIALS),
 )
 
 
@@ -86,18 +84,24 @@ def get_class_data(
     tenant_collection = collection
     if tenant:
         try:
-            tenant_collection = collection.with_tenant(tenant)
+            conf = collection.config.get(simple=True)
+            if getattr(conf.multi_tenancy_config, "enabled", False):
+                tenant_collection = collection.with_tenant(tenant)
+            else:
+                logger.warning(
+                    f"Tenant '{tenant}' ignored for class '{class_name}' which does not enable multi-tenancy"
+                )
         except Exception:
-            logger.warning(
-                f"Tenant '{tenant}' ignored for class '{class_name}'"
-            )
+            logger.warning(f"Tenant '{tenant}' ignored for class '{class_name}'")
     paginate = {"limit": limit, "offset": offset}
 
     if keyword:
         query = {"query": keyword, "certainty": certainty}
         metadata = {"return_metadata": ["certainty", "distance"]}
         response = tenant_collection.query.near_text(**query, **metadata, **paginate)
-        count_response = tenant_collection.aggregate.near_text(total_count=True, **query)
+        count_response = tenant_collection.aggregate.near_text(
+            total_count=True, **query
+        )
     else:
         response = tenant_collection.query.fetch_objects(**paginate)
         count_response = tenant_collection.aggregate.over_all(total_count=True)
