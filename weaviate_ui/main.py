@@ -79,20 +79,22 @@ def get_class_data(
     tenant: str | None = None,
 ):
     logger.info(keyword)
-
+    logger.info(f"Fetching data for class '{class_name}' with keyword '{keyword}' and tenant '{tenant}'")
     collection = client.collections.get(class_name)
     tenant_collection = collection
     if tenant:
         try:
-            conf = collection.config.get(simple=True)
-            if getattr(conf.multi_tenancy_config, "enabled", False):
-                tenant_collection = client.collections.get(class_name, tenant=tenant)
+            conf = collection.config.get()
+            is_enabled = conf.multi_tenancy_config.enabled
+            print(f"Multi-tenancy enabled: {is_enabled}")
+            if is_enabled:
+               tenant_collection = collection.with_tenant(tenant)
             else:
                 logger.warning(
                     f"Tenant '{tenant}' ignored for class '{class_name}' which does not enable multi-tenancy"
                 )
-        except Exception:
-            logger.warning(f"Tenant '{tenant}' ignored for class '{class_name}'")
+        except Exception as e:
+            logger.error(f"Error fetching multi-tenancy config for class '{class_name}': {e}")
     paginate = {"limit": limit, "offset": offset}
 
     if keyword:
