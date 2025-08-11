@@ -86,7 +86,7 @@ def get_class_data(
         try:
             conf = collection.config.get(simple=True)
             if getattr(conf.multi_tenancy_config, "enabled", False):
-                tenant_collection = collection.with_tenant(tenant)
+                tenant_collection = client.collections.get(class_name, tenant=tenant)
             else:
                 logger.warning(
                     f"Tenant '{tenant}' ignored for class '{class_name}' which does not enable multi-tenancy"
