@@ -7,7 +7,6 @@ from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from weaviate.classes.init import Auth
-from pydantic import BaseModel
 from uuid import uuid4
 from typing import Any, Dict
 
@@ -118,11 +117,6 @@ def get_class_data(
     return {"data": response.objects, "count": count_response.total_count}
 
 
-class ObjectPayload(BaseModel):
-    uuid: str | None = None
-    properties: Dict[str, Any]
-
-
 def _collection_with_tenant(class_name: str, tenant: str | None):
     collection = client.collections.get(class_name)
     if tenant:
@@ -134,17 +128,24 @@ def _collection_with_tenant(class_name: str, tenant: str | None):
 def get_object(class_name: str, object_id: str, tenant: str | None = None):
     collection = _collection_with_tenant(class_name, tenant)
     try:
-        return collection.data.get(object_id)
+        obj = collection.query.fetch_object_by_id(object_id)
+        if obj is None:
+            raise HTTPException(status_code=404, detail="Object not found")
+        return obj
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.post("/class/{class_name}/object")
-def insert_object(class_name: str, payload: ObjectPayload, tenant: str | None = None):
+def insert_object(
+    class_name: str, properties: Dict[str, Any], tenant: str | None = None
+):
     collection = _collection_with_tenant(class_name, tenant)
-    uid = payload.uuid or str(uuid4())
+    uid = properties.pop("uuid", str(uuid4()))
     try:
-        collection.data.insert(payload.properties, uuid=uid)
+        collection.data.insert(properties, uuid=uid)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"uuid": uid}
@@ -169,7 +170,7 @@ def update_object(
 def delete_object(class_name: str, object_id: str, tenant: str | None = None):
     collection = _collection_with_tenant(class_name, tenant)
     try:
-        collection.data.delete(object_id)
+        collection.data.delete_by_id(object_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"uuid": object_id}
