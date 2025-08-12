@@ -1,5 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getClass, getTenants } from "./api.ts";
+import {
+  getClass,
+  getTenants,
+  getObject,
+  insertObject,
+  updateObject,
+  deleteObject,
+  deleteClass,
+} from "./api.ts";
 import {
   ActionType,
   ProTable,
@@ -8,18 +16,22 @@ import {
   ProFormDatePicker,
   QueryFilter,
 } from "@ant-design/pro-components";
-import { Select } from "antd";
+import { Button, Form, Input, Modal, Select, message } from "antd";
 
 export default function ({ pathname, propties }: any) {
   let propertyNames = propties.map((x) => x.name);
+  const className = pathname.split("/").pop();
   let defaultCertainty = 0.65;
   const [keyword, setKeyword] = useState("");
   const [certainty, setCertainty] = useState(defaultCertainty);
   const [tenants, setTenants] = useState<string[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string | undefined>();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("insert");
+  const [currentRecord, setCurrentRecord] = useState<any>({});
+  const [form] = Form.useForm();
 
   useEffect(() => {
-    const className = pathname.split("/").pop();
     getTenants(className).then((ts) => {
       setTenants(ts);
       setSelectedTenant(undefined);
@@ -43,6 +55,81 @@ export default function ({ pathname, propties }: any) {
       },
     });
   });
+
+  columns.push({
+    title: "Actions",
+    valueType: "option",
+    render: (_: any, record: any) => [
+      <a key="view" onClick={() => handleView(record.index)}>
+        View
+      </a>,
+      <a key="edit" onClick={() => handleEdit(record)}>
+        Update
+      </a>,
+      <a key="delete" onClick={() => handleDelete(record.index)}>
+        Delete
+      </a>,
+    ],
+  });
+
+  const handleInsert = () => {
+    setModalMode("insert");
+    setCurrentRecord({});
+    form.resetFields();
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (record: any) => {
+    setModalMode("edit");
+    setCurrentRecord(record);
+    form.setFieldsValue(record);
+    setIsModalOpen(true);
+  };
+
+  const handleView = async (id: string) => {
+    const data = await getObject(className, id, selectedTenant);
+    Modal.info({
+      title: "Object Detail",
+      width: 600,
+      content: <pre>{JSON.stringify(data, null, 2)}</pre>,
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteObject(className, id, selectedTenant);
+    message.success("Deleted successfully");
+    ref.current?.reload();
+  };
+
+  const handleDeleteCollection = () => {
+    Modal.confirm({
+      title: "Delete Collection",
+      content: "Are you sure you want to delete this collection?",
+      onOk: async () => {
+        await deleteClass(className);
+        message.success("Collection deleted");
+        window.location.href = "/";
+      },
+    });
+  };
+
+  const onModalOk = async () => {
+    const values = await form.validateFields();
+    if (modalMode === "edit") {
+      await updateObject(
+        className,
+        currentRecord.index,
+        values,
+        selectedTenant,
+      );
+      message.success("Updated successfully");
+    } else {
+      await insertObject(className, values, selectedTenant);
+      message.success("Inserted successfully");
+    }
+    setIsModalOpen(false);
+    ref.current?.reload();
+  };
 
   const ref = useRef<ActionType>();
   return (
@@ -95,6 +182,14 @@ export default function ({ pathname, propties }: any) {
         toolbar={{
           title: "Collection",
           tooltip: "",
+          actions: [
+            <Button type="primary" key="insert" onClick={handleInsert}>
+              Insert
+            </Button>,
+            <Button danger key="delete" onClick={handleDeleteCollection}>
+              Delete Collection
+            </Button>,
+          ],
           search: {
             onSearch: async (value: string) => {
               setKeyword(value);
@@ -150,6 +245,20 @@ export default function ({ pathname, propties }: any) {
         }}
         search={false}
       />
+      <Modal
+        title={modalMode === "edit" ? "Update Row" : "Insert Row"}
+        open={isModalOpen}
+        onOk={onModalOk}
+        onCancel={() => setIsModalOpen(false)}
+      >
+        <Form form={form} layout="vertical">
+          {propertyNames.map((name: string) => (
+            <Form.Item name={name} label={name} key={name}>
+              <Input />
+            </Form.Item>
+          ))}
+        </Form>
+      </Modal>
     </div>
   );
 }
