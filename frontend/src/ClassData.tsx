@@ -16,7 +16,13 @@ import {
   ProFormDatePicker,
   QueryFilter,
 } from "@ant-design/pro-components";
-import { Button, Form, Input, Modal, Select, message } from "antd";
+import { Button, Form, Input, Modal, Select, message, Dropdown } from "antd";
+import {
+  EllipsisOutlined,
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 
 export default function ({ pathname, propties }: any) {
   let propertyNames = propties.map((x) => x.name);
@@ -59,16 +65,48 @@ export default function ({ pathname, propties }: any) {
   columns.push({
     title: "Actions",
     valueType: "option",
+    width: 60,
+    align: "center",
     render: (_: any, record: any) => [
-      <a key="view" onClick={() => handleView(record.index)}>
-        View
-      </a>,
-      <a key="edit" onClick={() => handleEdit(record)}>
-        Update
-      </a>,
-      <a key="delete" onClick={() => handleDelete(record.index)}>
-        Delete
-      </a>,
+      <Dropdown
+        key="actions"
+        menu={{
+          items: [
+            {
+              key: "view",
+              label: (
+                <span>
+                  <EyeOutlined /> View
+                </span>
+              ),
+            },
+            {
+              key: "edit",
+              label: (
+                <span>
+                  <EditOutlined /> Update
+                </span>
+              ),
+            },
+            {
+              key: "delete",
+              label: (
+                <span>
+                  <DeleteOutlined /> Delete
+                </span>
+              ),
+            },
+          ],
+          onClick: ({ key }) => {
+            if (key === "view") handleView(record.index);
+            if (key === "edit") handleEdit(record);
+            if (key === "delete") handleDelete(record.index);
+          },
+        }}
+        trigger={["click"]}
+      >
+        <Button type="text" icon={<EllipsisOutlined />} />
+      </Dropdown>,
     ],
   });
 
