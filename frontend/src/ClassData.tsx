@@ -128,7 +128,7 @@ export default function ({ pathname, propties }: any) {
     const data = await getObject(className, id, selectedTenant);
     Modal.info({
       title: "Object Detail",
-      width: 600,
+      width: "70vw",
       content: (
         <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
           {JSON.stringify(data, null, 2)}
@@ -292,6 +292,7 @@ export default function ({ pathname, propties }: any) {
         open={isModalOpen}
         onOk={onModalOk}
         onCancel={() => setIsModalOpen(false)}
+        width="70vw"
       >
         <Form form={form} layout="vertical">
           {propertyNames.map((name: string) => (
