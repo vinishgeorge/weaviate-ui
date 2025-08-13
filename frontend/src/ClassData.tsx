@@ -91,7 +91,11 @@ export default function ({ pathname, propties }: any) {
     Modal.info({
       title: "Object Detail",
       width: 600,
-      content: <pre>{JSON.stringify(data, null, 2)}</pre>,
+      content: (
+        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      ),
     });
   };
 
