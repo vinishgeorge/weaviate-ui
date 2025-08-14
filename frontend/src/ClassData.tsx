@@ -185,7 +185,7 @@ export default function ({ pathname, propties }: any) {
         actionRef={ref}
         params={{ pathname: pathname }}
         columns={columns}
-        onRow={(record) => ({
+        onRow={(record: any) => ({
           onClick: () => handleView(record.index),
         })}
         request={async (
