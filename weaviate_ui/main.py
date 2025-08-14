@@ -2,11 +2,13 @@ import os
 
 import weaviate
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from weaviate.classes.init import Auth
+from uuid import uuid4
+from typing import Any, Dict
 
 load_dotenv(override=True)
 
@@ -79,7 +81,9 @@ def get_class_data(
     tenant: str | None = None,
 ):
     logger.info(keyword)
-    logger.info(f"Fetching data for class '{class_name}' with keyword '{keyword}' and tenant '{tenant}'")
+    logger.info(
+        f"Fetching data for class '{class_name}' with keyword '{keyword}' and tenant '{tenant}'"
+    )
     collection = client.collections.get(class_name)
     tenant_collection = collection
     if tenant:
@@ -88,13 +92,15 @@ def get_class_data(
             is_enabled = conf.multi_tenancy_config.enabled
             print(f"Multi-tenancy enabled: {is_enabled}")
             if is_enabled:
-               tenant_collection = collection.with_tenant(tenant)
+                tenant_collection = collection.with_tenant(tenant)
             else:
                 logger.warning(
                     f"Tenant '{tenant}' ignored for class '{class_name}' which does not enable multi-tenancy"
                 )
         except Exception as e:
-            logger.error(f"Error fetching multi-tenancy config for class '{class_name}': {e}")
+            logger.error(
+                f"Error fetching multi-tenancy config for class '{class_name}': {e}"
+            )
     paginate = {"limit": limit, "offset": offset}
 
     if keyword:
@@ -109,6 +115,74 @@ def get_class_data(
         count_response = tenant_collection.aggregate.over_all(total_count=True)
 
     return {"data": response.objects, "count": count_response.total_count}
+
+
+def _collection_with_tenant(class_name: str, tenant: str | None):
+    collection = client.collections.get(class_name)
+    if tenant:
+        collection = collection.with_tenant(tenant)
+    return collection
+
+
+@app.get("/class/{class_name}/object/{object_id}")
+def get_object(class_name: str, object_id: str, tenant: str | None = None):
+    collection = _collection_with_tenant(class_name, tenant)
+    try:
+        obj = collection.query.fetch_object_by_id(object_id)
+        if obj is None:
+            raise HTTPException(status_code=404, detail="Object not found")
+        return obj
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/class/{class_name}/object")
+def insert_object(
+    class_name: str, properties: Dict[str, Any], tenant: str | None = None
+):
+    collection = _collection_with_tenant(class_name, tenant)
+    uid = properties.pop("uuid", str(uuid4()))
+    try:
+        collection.data.insert(properties, uuid=uid)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"uuid": uid}
+
+
+@app.put("/class/{class_name}/object/{object_id}")
+def update_object(
+    class_name: str,
+    object_id: str,
+    properties: Dict[str, Any],
+    tenant: str | None = None,
+):
+    collection = _collection_with_tenant(class_name, tenant)
+    try:
+        collection.data.update(object_id, properties)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"uuid": object_id}
+
+
+@app.delete("/class/{class_name}/object/{object_id}")
+def delete_object(class_name: str, object_id: str, tenant: str | None = None):
+    collection = _collection_with_tenant(class_name, tenant)
+    try:
+        collection.data.delete_by_id(object_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"uuid": object_id}
+
+
+@app.delete("/class/{class_name}")
+def delete_class(class_name: str):
+    try:
+        client.collections.delete(class_name)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"class_name": class_name}
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
