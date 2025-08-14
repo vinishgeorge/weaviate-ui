@@ -97,7 +97,8 @@ export default function ({ pathname, propties }: any) {
               ),
             },
           ],
-          onClick: ({ key }) => {
+          onClick: ({ key, domEvent }) => {
+            domEvent.stopPropagation();
             if (key === "view") handleView(record.index);
             if (key === "edit") handleEdit(record);
             if (key === "delete") handleDelete(record.index);
@@ -105,7 +106,11 @@ export default function ({ pathname, propties }: any) {
         }}
         trigger={["click"]}
       >
-        <Button type="text" icon={<EllipsisOutlined />} />
+        <Button
+          type="text"
+          icon={<EllipsisOutlined />}
+          onClick={(e) => e.stopPropagation()}
+        />
       </Dropdown>,
     ],
   });
@@ -180,6 +185,9 @@ export default function ({ pathname, propties }: any) {
         actionRef={ref}
         params={{ pathname: pathname }}
         columns={columns}
+        onRow={(record) => ({
+          onClick: () => handleView(record.index),
+        })}
         request={async (
           // 第一个参数 params 查询表单和 params 参数的结合
           // 第一个参数中一定会有 pageSize 和  current ，这两个参数是 antd 的规范
