@@ -53,6 +53,7 @@ interface Collection {
   vectorizer_config: null;
   vectorizer: null;
   vector_config: VectorConfig;
+  last_update_time_unix?: number;
 }
 
 interface Collections {

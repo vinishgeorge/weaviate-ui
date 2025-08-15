@@ -20,6 +20,7 @@ export default function () {
     vectorizer: Object.values(schema.vector_config || [])
       .map((config) => config.vectorizer.vectorizer)
       .join(","),
+    modified: schema.last_update_time_unix,
     key: schema.name,
     detail: schema,
   }));
@@ -27,6 +28,7 @@ export default function () {
     {
       title: "Collection",
       dataIndex: "className",
+      sorter: (a, b) => a.className.localeCompare(b.className),
     },
     {
       title: "Description",
@@ -39,6 +41,13 @@ export default function () {
     {
       title: "Vectorizer",
       dataIndex: "vectorizer",
+    },
+    {
+      title: "Modified",
+      dataIndex: "modified",
+      sorter: (a, b) => (a.modified ?? 0) - (b.modified ?? 0),
+      render: (_: any, record: any) =>
+        record.modified ? new Date(record.modified).toLocaleString() : "",
     },
     {
       title: "Detail",
