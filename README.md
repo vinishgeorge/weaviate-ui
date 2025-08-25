@@ -6,12 +6,50 @@ Weaviate-UI is a web client for interacting with the Weaviate.
 
 ## Features
 
-- Schema query
-- Data search
+- Browse the schema and inspect classes
+- Perform semantic or keyword data searches
+- View and manage objects (create, update and delete)
+- Multi-tenant aware with tenant selection
+
+## Local Development
+
+1. Install backend dependencies:
+
+   ```bash
+   poetry install
+   ```
+
+2. Install frontend dependencies:
+
+   ```bash
+   cd frontend
+   yarn
+   cd ..
+   ```
+
+3. Start the backend server:
+
+   ```bash
+   uvicorn weaviate_ui.main:app --reload --host 0.0.0.0 --port 7777
+   ```
+
+4. In another terminal start the frontend development server:
+
+   ```bash
+   cd frontend
+   yarn dev
+   ```
+
+5. Build the frontend for production:
+
+   ```bash
+   cd frontend
+   yarn build
+   ```
 
 ## Usage V4
 
-See `compose.yml` and adjust environment variables to your need. By default it will look for a locally hosted weaviate on the default 8080 port. Set `WEAVIATE_AUTH_CREDENTIALS` if authentication is required.
+See `compose.yml` and adjust environment variables as needed. By default it connects to a locally hosted Weaviate on port 8080. Set `WEAVIATE_AUTH_CREDENTIALS` if authentication is required.
 
 ```bash
 $ docker-compose up
