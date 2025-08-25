@@ -1,24 +1,24 @@
 export default [
-    {
-        path: '/',
-        name: '😈 欢迎',
+  {
+    path: "/",
+    name: "😈 欢迎",
+    routes: [
+      {
+        path: "/welcome",
+        name: "one",
         routes: [
-            {
-                path: '/welcome',
-                name: 'one',
-                routes: [
-                    {
-                        path: '/welcome/welcome',
-                        name: 'two',
-                        exact: true,
-                    },
-                ],
-            },
+          {
+            path: "/welcome/welcome",
+            name: "two",
+            exact: true,
+          },
         ],
-    },
-    {
-        path: '/demo',
-        name: '例子',
-        component: './Welcome',
-    },
+      },
+    ],
+  },
+  {
+    path: "/demo",
+    name: "例子",
+    component: "./Welcome",
+  },
 ];
