@@ -1,0 +1,19 @@
+ services:
+  weaviate-ui: 
+    command: uvicorn weaviate_ui.main:app --host 0.0.0.0 --port 7777 --reload
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7777:7777"
+    environment:
+      - WEAVIATE_HOST=XXXXX
+      - WEAVIATE_PORT=XX
+      - WEAVIATE_SECURE=
+      - WEAVIATE_GRPC_HOST=XX
+      - WEAVIATE_GRPC_PORT=XXXXX
+      - WEAVIATE_GRPC_SECURE=
+      - WEAVIATE_AUTH_CREDENTIALS=XXXXXXX
+    volumes:
+      - ./weaviate_ui:/app/weaviate_ui
+      # - ./frontend/dist:/app/static # Uncomment this line if you want to use a local frontend build
