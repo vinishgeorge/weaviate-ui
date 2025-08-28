@@ -12,9 +12,14 @@ import { Collection } from "./types.ts";
 // import loadsh
 import _ from "lodash";
 import ClassData from "./ClassData.tsx";
+import { useIsAuthenticated, useMsal } from "@azure/msal-react";
+import { login, logout } from "./authClient";
 
 export default () => {
   const [pathname, setPathname] = useState("/");
+  const isAuthenticated = useIsAuthenticated();
+  const { accounts } = useMsal();
+  const username = accounts[0]?.username;
 
   const [routes, setRoutes] = useState({
     route: {
@@ -110,6 +115,16 @@ export default () => {
           >
             {logo}
             {title}
+            <div style={{ marginLeft: 16, display: "flex", gap: 12 }}>
+              {isAuthenticated && (
+                <span style={{ opacity: 0.8 }}>{username}</span>
+              )}
+              {isAuthenticated ? (
+                <a onClick={() => logout()}>Logout</a>
+              ) : (
+                <a onClick={() => login()}>Login</a>
+              )}
+            </div>
           </div>
         )}
         {...routes}
@@ -118,7 +133,9 @@ export default () => {
         }}
       >
         <PageContainer>
-          {pathname === "/" || pathname === "/schema" ? (
+          {!isAuthenticated ? (
+            <div>Please sign in to continue.</div>
+          ) : pathname === "/" || pathname === "/schema" ? (
             <Welcome></Welcome>
           ) : (
             <ClassData

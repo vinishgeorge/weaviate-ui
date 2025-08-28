@@ -4,6 +4,11 @@
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Frontend (Vite) MSAL configuration used at build time
+        VITE_AZURE_AD_CLIENT_ID: XXX
+        VITE_AZURE_AD_TENANT_ID: XXX
+        VITE_AUTH_REDIRECT_URI: http://localhost:7777
     ports:
       - "7777:7777"
     environment:
@@ -14,6 +19,9 @@
       - WEAVIATE_GRPC_PORT=XXXXX
       - WEAVIATE_GRPC_SECURE=
       - WEAVIATE_AUTH_CREDENTIALS=XXXXXXX
+      - AZURE_AD_TENANT_ID=xxx
+      - AZURE_AD_CLIENT_ID=XXXX
+      - AZURE_AD_AUDIENCE=XXXX
     volumes:
       - ./weaviate_ui:/app/weaviate_ui
       # - ./frontend/dist:/app/static # Uncomment this line if you want to use a local frontend build
