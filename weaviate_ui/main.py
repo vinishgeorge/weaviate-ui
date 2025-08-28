@@ -9,6 +9,7 @@ from starlette.staticfiles import StaticFiles
 from weaviate.classes.init import Auth
 from uuid import uuid4
 from typing import Any, Dict
+from dataclasses import asdict
 
 load_dotenv(override=True)
 
@@ -57,7 +58,18 @@ client = weaviate.connect_to_custom(
 
 @app.get("/schema")
 def schema():
-    return client.collections.list_all()
+    configs = client.collections.list_all()
+    response = client.collections._connection.get(
+        path="/schema", error_msg="Get schema"
+    )
+    raw = response.json()
+    update_map = {
+        cl["class"]: cl.get("lastUpdateTimeUnix") for cl in raw.get("classes", [])
+    }
+    return {
+        name: {**asdict(cfg), "last_update_time_unix": update_map.get(name)}
+        for name, cfg in configs.items()
+    }
 
 
 @app.get("/class/{class_name}/tenants")
