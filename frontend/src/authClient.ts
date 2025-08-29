@@ -2,16 +2,19 @@ import { pca, loginRequest } from "./authConfig";
 import type { AuthenticationResult } from "@azure/msal-browser";
 
 export async function login(): Promise<void> {
+  await pca.initialize().catch(() => {});
   await pca.loginRedirect(loginRequest);
 }
 
 export async function logout(): Promise<void> {
+  await pca.initialize().catch(() => {});
   const account = pca.getActiveAccount() || pca.getAllAccounts()[0] || undefined;
   await pca.logoutRedirect({ account });
 }
 
 // Acquire token; we use idToken here for backend validation with audience = clientId
 export async function getBearerToken(): Promise<string | null> {
+  await pca.initialize().catch(() => {});
   const account = pca.getActiveAccount() || pca.getAllAccounts()[0] || null;
   if (!account) return null;
   try {

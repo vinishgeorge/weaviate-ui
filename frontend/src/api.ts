@@ -45,12 +45,18 @@ export const getClass = async (
     ...(await authHeaders()),
     "Content-Type": "application/json",
   };
-  return fetch(`${host + className}?${queryParams.toString()}`, {
+  return fetch(`${host}/class/${encodeURIComponent(className)}?${queryParams.toString()}`, {
     method: "POST",
     headers,
     body: JSON.stringify(properties),
   })
-    .then((response) => response.json())
+    .then(async (response) => {
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(`Class fetch failed ${response.status}: ${text}`);
+      }
+      return response.json();
+    })
     .catch((error) => console.log(error));
 };
 

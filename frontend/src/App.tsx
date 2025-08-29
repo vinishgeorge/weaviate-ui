@@ -56,27 +56,44 @@ export default () => {
   const [class2props, setClass2props] = useState({});
   useEffect(() => {
     getSchema().then((schemas) => {
-      let classes = Object.values(schemas);
-      routes.route.routes[1].routes = classes.map((schema: Collection) => ({
-        key: schema.name,
-        path: "/class/" + schema.name,
-        name: schema.name,
+      const parsed: { name: string; properties: any[] }[] = [];
+      if (schemas && typeof schemas === "object" && !Array.isArray(schemas)) {
+        Object.entries(schemas).forEach(([key, value]: [string, any]) => {
+          const name = (value && value.name) || key;
+          const properties = (value && value.properties) || [];
+          if (typeof name === "string" && name) {
+            parsed.push({ name, properties });
+          }
+        });
+      } else if (Array.isArray(schemas)) {
+        schemas.forEach((v: any) => {
+          if (!v) return;
+          if (typeof v === "string") parsed.push({ name: v, properties: [] });
+          else if (v.name) parsed.push({ name: v.name, properties: v.properties || [] });
+          else if (v.class) parsed.push({ name: v.class, properties: v.properties || [] });
+        });
+      }
+
+      const newRoutes = _.cloneDeep(routes);
+      newRoutes.route.routes[1].routes = parsed.map((c) => ({
+        key: c.name,
+        path: "/class/" + encodeURIComponent(c.name),
+        name: c.name,
         icon: <CrownFilled />,
       }));
-      routes.route.routes[1].routes.push({
+      newRoutes.route.routes[1].routes.push({
         key: "hidden-root",
         path: "/",
         hideInMenu: true,
-      }); // add a hidden root route so the sub menu will show by default
-      setRoutes(_.cloneDeep(routes));
-      let class2props = {};
-      classes.forEach((schema: Collection) => {
-        // return a json object,key is schema.class,value is schema.properties
-        let key = `/class/${schema.name}`;
-        class2props[key] = schema.properties;
       });
+      setRoutes(newRoutes);
 
-      setClass2props(class2props);
+      const mapping: Record<string, any[]> = {};
+      parsed.forEach((c) => {
+        const key = `/class/${c.name}`;
+        mapping[key] = c.properties || [];
+      });
+      setClass2props(mapping);
     });
   }, []);
   return (
@@ -86,6 +103,27 @@ export default () => {
       }}
     >
       <ProLayout
+        menu={{ defaultOpenAll: true }}
+        breadcrumbProps={{
+          itemRender: (route: any, _params: any, routes: any[]) => {
+            const label = route.breadcrumbName || route.name;
+            const isLast = routes.indexOf(route) === routes.length - 1;
+            if (isLast) return <span>{label}</span>;
+            const target = route.path || "/";
+            return (
+              <a
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Avoid navigating to bare "/class" (no page there); go home instead
+                  if (target === "/class") setPathname("/");
+                  else setPathname(target);
+                }}
+              >
+                {label}
+              </a>
+            );
+          },
+        }}
         menuItemRender={(item, dom) => (
           <div
             onClick={() => {
@@ -156,11 +194,15 @@ export default () => {
             <div>Please sign in to continue.</div>
           ) : pathname === "/" || pathname === "/schema" ? (
             <Welcome></Welcome>
-          ) : (
+          ) : pathname.startsWith("/class/") ? (
             <ClassData
               pathname={pathname}
               propties={class2props[pathname] || []}
             ></ClassData>
+          ) : (
+            <div style={{ padding: 16, opacity: 0.8 }}>
+              Select a collection from the menu.
+            </div>
           )}
         </PageContainer>
       </ProLayout>
