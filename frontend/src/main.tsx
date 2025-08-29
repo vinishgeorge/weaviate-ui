@@ -23,7 +23,17 @@ async function bootstrap() {
   }
   root.render(
     <MsalProvider instance={pca}>
-      <ConfigProvider locale={en_US}>
+      <ConfigProvider
+        locale={en_US}
+        theme={{
+          token: {
+            // Use Weaviate-like accent colors
+            colorPrimary: "#10B981", // emerald
+            colorInfo: "#6366F1", // indigo
+            borderRadius: 8,
+          },
+        }}
+      >
         <App />
       </ConfigProvider>
     </MsalProvider>,
