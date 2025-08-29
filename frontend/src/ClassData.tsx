@@ -26,8 +26,7 @@ import {
 
 export default function ({ pathname, propties }: any) {
   let propertyNames = propties.map((x) => x.name);
-  const match = /^\/class\/([^/]+)/.exec(pathname);
-  const className = match ? match[1] : undefined;
+  const className = pathname.split("/").pop();
   let defaultCertainty = 0.65;
   const [keyword, setKeyword] = useState("");
   const [certainty, setCertainty] = useState(defaultCertainty);
@@ -39,7 +38,6 @@ export default function ({ pathname, propties }: any) {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    if (!className) return;
     getTenants(className).then((ts) => {
       setTenants(ts);
       setSelectedTenant(undefined);
@@ -197,10 +195,7 @@ export default function ({ pathname, propties }: any) {
           sort,
           filter,
         ) => {
-          if (!className) {
-            return { data: [], success: true, total: 0 };
-          }
-          const collection = className;
+          const collection = pathname;
           const offset = (params.current - 1) * params.pageSize;
           const limit = params.pageSize;
 
@@ -214,23 +209,22 @@ export default function ({ pathname, propties }: any) {
             selectedTenant,
           );
 
-          const rows = Array.isArray(clzData?.data) ? clzData.data : [];
-          let data = rows.map((clz: any) => {
+          let data = clzData.data.map((clz: any) => {
             let res = {};
 
             propertyNames.forEach((proptie: any) => {
-              res[proptie] = clz?.properties?.[proptie];
+              res[proptie] = clz.properties[proptie];
             });
 
-            res["index"] = clz?.uuid;
-            res["key"] = clz?.uuid;
+            res["index"] = clz.uuid;
+            res["key"] = clz.uuid;
 
             return res;
           });
           return {
             data: data,
             success: true,
-            total: clzData?.count || 0,
+            total: clzData.count,
           };
         }}
         rowKey="key"

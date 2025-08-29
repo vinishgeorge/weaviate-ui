@@ -1,29 +1,21 @@
 import { Collections } from "./types";
-import { getBearerToken } from "./authClient";
 
 let host = "";
 
-async function authHeaders() {
-  const token = await getBearerToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-export const getSchema = async (): Promise<Collections> => {
-  const headers = await authHeaders();
-  return fetch(host + "/schema", { headers })
+export const getSchema = (): Promise<Collections> => {
+  return fetch(host + "/schema")
     .then((response) => response.json())
     .catch((error) => console.log(error));
 };
 
-export const getTenants = async (className: string): Promise<string[]> => {
-  const headers = await authHeaders();
-  return fetch(`${host}/class/${className}/tenants`, { headers })
+export const getTenants = (className: string): Promise<string[]> => {
+  return fetch(`${host}/class/${className}/tenants`)
     .then((response) => response.json())
     .then((data) => data.tenants)
     .catch((error) => console.log(error));
 };
 
-export const getClass = async (
+export const getClass = (
   className: string,
   offset: number,
   limit: number,
@@ -41,44 +33,30 @@ export const getClass = async (
   if (tenant) {
     queryParams.append("tenant", tenant);
   }
-  const headers = {
-    ...(await authHeaders()),
-    "Content-Type": "application/json",
-  };
-  return fetch(`${host}/class/${encodeURIComponent(className)}?${queryParams.toString()}`, {
+  return fetch(`${host + className}?${queryParams.toString()}`, {
     method: "POST",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(properties),
   })
-    .then(async (response) => {
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(`Class fetch failed ${response.status}: ${text}`);
-      }
-      return response.json();
-    })
+    .then((response) => response.json())
     .catch((error) => console.log(error));
 };
 
-export const getObject = async (
-  className: string,
-  id: string,
-  tenant?: string,
-) => {
+export const getObject = (className: string, id: string, tenant?: string) => {
   const queryParams = new URLSearchParams();
   if (tenant) {
     queryParams.append("tenant", tenant);
   }
-  const headers = await authHeaders();
   return fetch(
     `${host}/class/${className}/object/${id}?${queryParams.toString()}`,
-    { headers },
   )
     .then((response) => response.json())
     .catch((error) => console.log(error));
 };
 
-export const insertObject = async (
+export const insertObject = (
   className: string,
   properties: any,
   tenant?: string,
@@ -87,20 +65,16 @@ export const insertObject = async (
   if (tenant) {
     queryParams.append("tenant", tenant);
   }
-  const headers = {
-    ...(await authHeaders()),
-    "Content-Type": "application/json",
-  };
   return fetch(`${host}/class/${className}/object?${queryParams.toString()}`, {
     method: "POST",
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(properties),
   })
     .then((response) => response.json())
     .catch((error) => console.log(error));
 };
 
-export const updateObject = async (
+export const updateObject = (
   className: string,
   id: string,
   properties: any,
@@ -110,15 +84,11 @@ export const updateObject = async (
   if (tenant) {
     queryParams.append("tenant", tenant);
   }
-  const headers = {
-    ...(await authHeaders()),
-    "Content-Type": "application/json",
-  };
   return fetch(
     `${host}/class/${className}/object/${id}?${queryParams.toString()}`,
     {
       method: "PUT",
-      headers,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(properties),
     },
   )
@@ -126,7 +96,7 @@ export const updateObject = async (
     .catch((error) => console.log(error));
 };
 
-export const deleteObject = async (
+export const deleteObject = (
   className: string,
   id: string,
   tenant?: string,
@@ -135,23 +105,19 @@ export const deleteObject = async (
   if (tenant) {
     queryParams.append("tenant", tenant);
   }
-  const headers = await authHeaders();
   return fetch(
     `${host}/class/${className}/object/${id}?${queryParams.toString()}`,
     {
       method: "DELETE",
-      headers,
     },
   )
     .then((response) => response.json())
     .catch((error) => console.log(error));
 };
 
-export const deleteClass = async (className: string) => {
-  const headers = await authHeaders();
+export const deleteClass = (className: string) => {
   return fetch(`${host}/class/${className}`, {
     method: "DELETE",
-    headers,
   })
     .then((response) => response.json())
     .catch((error) => console.log(error));
