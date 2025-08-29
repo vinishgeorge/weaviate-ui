@@ -2,7 +2,8 @@ import os
 
 import weaviate
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from weaviate_ui.auth import validate_jwt
 from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
@@ -56,12 +57,12 @@ client = weaviate.connect_to_custom(
 
 
 @app.get("/schema")
-def schema():
+def schema(_: dict = Depends(validate_jwt)):
     return client.collections.list_all()
 
 
 @app.get("/class/{class_name}/tenants")
-def get_tenants(class_name: str):
+def get_tenants(class_name: str, _: dict = Depends(validate_jwt)):
     collection = client.collections.get(class_name)
     try:
         tenants = collection.tenants.get()
@@ -79,6 +80,7 @@ def get_class_data(
     certainty: float = 0.65,
     properties: list[str] | None = None,
     tenant: str | None = None,
+    _: dict = Depends(validate_jwt),
 ):
     logger.info(keyword)
     logger.info(
@@ -125,7 +127,12 @@ def _collection_with_tenant(class_name: str, tenant: str | None):
 
 
 @app.get("/class/{class_name}/object/{object_id}")
-def get_object(class_name: str, object_id: str, tenant: str | None = None):
+def get_object(
+    class_name: str,
+    object_id: str,
+    tenant: str | None = None,
+    _: dict = Depends(validate_jwt),
+):
     collection = _collection_with_tenant(class_name, tenant)
     try:
         obj = collection.query.fetch_object_by_id(object_id)
@@ -140,7 +147,10 @@ def get_object(class_name: str, object_id: str, tenant: str | None = None):
 
 @app.post("/class/{class_name}/object")
 def insert_object(
-    class_name: str, properties: Dict[str, Any], tenant: str | None = None
+    class_name: str,
+    properties: Dict[str, Any],
+    tenant: str | None = None,
+    _: dict = Depends(validate_jwt),
 ):
     collection = _collection_with_tenant(class_name, tenant)
     uid = properties.pop("uuid", str(uuid4()))
@@ -157,6 +167,7 @@ def update_object(
     object_id: str,
     properties: Dict[str, Any],
     tenant: str | None = None,
+    _: dict = Depends(validate_jwt),
 ):
     collection = _collection_with_tenant(class_name, tenant)
     try:
@@ -167,7 +178,12 @@ def update_object(
 
 
 @app.delete("/class/{class_name}/object/{object_id}")
-def delete_object(class_name: str, object_id: str, tenant: str | None = None):
+def delete_object(
+    class_name: str,
+    object_id: str,
+    tenant: str | None = None,
+    _: dict = Depends(__import__("weaviate_ui.auth").auth.validate_jwt),
+):
     collection = _collection_with_tenant(class_name, tenant)
     try:
         collection.data.delete_by_id(object_id)
@@ -177,7 +193,7 @@ def delete_object(class_name: str, object_id: str, tenant: str | None = None):
 
 
 @app.delete("/class/{class_name}")
-def delete_class(class_name: str):
+def delete_class(class_name: str, _: dict = Depends(validate_jwt)):
     try:
         client.collections.delete(class_name)
     except Exception as e:
@@ -186,3 +202,8 @@ def delete_class(class_name: str):
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+# Optional unauthenticated health endpoint
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}

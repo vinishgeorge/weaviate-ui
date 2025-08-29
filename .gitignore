@@ -192,3 +192,4 @@ cython_debug/
 # specific mac files
 .DS_Store
 ._*
+weaviate_ui/.main.py.swp

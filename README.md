@@ -33,19 +33,36 @@ Weaviate-UI is a web client for interacting with the Weaviate.
    uvicorn weaviate_ui.main:app --reload --host 0.0.0.0 --port 7777
    ```
 
-4. In another terminal start the frontend development server:
+4. Configure Azure AD SSO (optional, recommended):
+
+   - Create an Azure AD App Registration for the SPA and note its Client ID and Tenant ID.
+   - Fill backend env in `.env` or `.env.example`:
+
+     - `AZURE_AD_TENANT_ID`
+     - `AZURE_AD_CLIENT_ID`
+     - Optional `AZURE_AD_AUDIENCE` (set if using a separate API App Registration)
+
+   - Create `frontend/.env` based on `frontend/.env.example`:
+
+     - `VITE_AZURE_AD_CLIENT_ID`
+     - `VITE_AZURE_AD_TENANT_ID`
+     - `VITE_AUTH_REDIRECT_URI` (e.g., `http://localhost:5173` during dev)
+
+5. In another terminal start the frontend development server:
 
    ```bash
    cd frontend
    yarn dev
    ```
 
-5. Build the frontend for production:
+6. Build the frontend for production:
 
    ```bash
    cd frontend
    yarn build
    ```
+
+When SSO is enabled, the React app prompts sign-in and sends a Bearer token to the FastAPI endpoints, which validate against Azure AD.
 
 ## Usage V4
 

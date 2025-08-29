@@ -12,6 +12,8 @@
     "@ant-design/icons": "^5.2.6",
     "@ant-design/pro-components": "^2.6.18",
     "@emotion/css": "^11.11.2",
+    "@azure/msal-browser": "^3.14.0",
+    "@azure/msal-react": "^2.0.13",
     "antd": "^5.9.0",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
