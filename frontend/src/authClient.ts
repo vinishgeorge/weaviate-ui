@@ -19,12 +19,11 @@ export async function getBearerToken(): Promise<string | null> {
       ...loginRequest,
       account,
     });
-    // Prefer accessToken; fall back to idToken when no resource scopes are configured
-    return result.accessToken || result.idToken || null;
+    // Always use ID token for backend auth (aud = SPA client id)
+    return result.idToken || null;
   } catch (e) {
     // If silent fails (e.g., interaction required), try interactive login
     await pca.acquireTokenRedirect(loginRequest);
     return null;
   }
 }
-
