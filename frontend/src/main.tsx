@@ -8,18 +8,26 @@ import { MsalProvider } from "@azure/msal-react";
 import { pca } from "./authConfig";
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 
-// Ensure MSAL is initialized before rendering anything that uses it
-pca
-  .initialize()
-  .catch(() => {
-    // noop: rendering will proceed regardless, but MSAL APIs will be safe post-init
-  })
-  .finally(() => {
-    root.render(
-      <MsalProvider instance={pca}>
-        <ConfigProvider locale={en_US}>
-          <App />
-        </ConfigProvider>
-      </MsalProvider>,
-    );
-  });
+// Ensure MSAL is initialized and any pending redirects are handled
+async function bootstrap() {
+  try {
+    await pca.initialize();
+    const result = await pca.handleRedirectPromise();
+    if (result && result.account) {
+      pca.setActiveAccount(result.account);
+    } else if (!pca.getActiveAccount() && pca.getAllAccounts().length > 0) {
+      pca.setActiveAccount(pca.getAllAccounts()[0]);
+    }
+  } catch (e) {
+    // ignore
+  }
+  root.render(
+    <MsalProvider instance={pca}>
+      <ConfigProvider locale={en_US}>
+        <App />
+      </ConfigProvider>
+    </MsalProvider>,
+  );
+}
+
+bootstrap();
