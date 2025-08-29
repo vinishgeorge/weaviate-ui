@@ -1,5 +1,5 @@
 import { PageContainer, ProLayout } from "@ant-design/pro-components";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Welcome from "./Welcome.tsx";
 import {
   BorderlessTableOutlined,
@@ -20,6 +20,17 @@ import UserAvatar from "./UserAvatar";
 
 export default () => {
   const [pathname, setPathname] = useState("/");
+  // Persisted, draggable sider width
+  const [siderWidth, setSiderWidth] = useState<number>(() => {
+    const saved = localStorage.getItem("siderWidth");
+    const n = saved ? Number(saved) : 208; // Ant Design default ~200
+    return Number.isFinite(n) && n > 120 ? n : 208;
+  });
+  const draggingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    localStorage.setItem("siderWidth", String(siderWidth));
+  }, [siderWidth]);
   const isAuthenticated = useIsAuthenticated();
   const { accounts } = useMsal();
   const account: any = accounts[0] || null;
@@ -98,14 +109,44 @@ export default () => {
       setClass2props(mapping);
     });
   }, []);
+  // Drag handlers for horizontal resize
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return;
+      // Compute width from viewport X; clamp to reasonable bounds
+      const min = 160;
+      const max = Math.max(320, window.innerWidth - 360);
+      const next = Math.min(max, Math.max(min, e.clientX));
+      setSiderWidth(next);
+      // Avoid text selection during drag
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+    };
+    const onUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+  }, []);
+
   // If not logged in, show a clean login screen without menu/layout
   if (!isAuthenticated) {
     return <LoginScreen />;
   }
 
   return (
-    <div style={{ height: "100vh" }}>
+    <div ref={containerRef} style={{ height: "100vh", position: "relative" }}>
       <ProLayout
+        siderWidth={siderWidth}
         menu={{ defaultOpenAll: true }}
         breadcrumbProps={{
           itemRender: (route: any, _params: any, routes: any[]) => {
@@ -203,6 +244,31 @@ export default () => {
           )}
         </PageContainer>
       </ProLayout>
+      {/* Drag handle overlay at the right edge of the sider */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          draggingRef.current = true;
+        }}
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: Math.max(0, siderWidth - 3),
+          width: 6,
+          cursor: "col-resize",
+          zIndex: 1000,
+          // Slightly visible when hovering; otherwise transparent
+          background: "transparent",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.background =
+            "rgba(0,0,0,0.05)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLDivElement).style.background = "transparent";
+        }}
+      />
     </div>
   );
 };
