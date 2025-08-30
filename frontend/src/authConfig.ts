@@ -1,9 +1,10 @@
 import { PublicClientApplication, Configuration, AccountInfo } from "@azure/msal-browser";
 
 // Read from Vite env (configure in frontend/.env or environment when building)
-const clientId = import.meta.env.VITE_AZURE_AD_CLIENT_ID as string;
-const tenantId = (import.meta.env.VITE_AZURE_AD_TENANT_ID as string) || "common";
-const redirectUri = (import.meta.env.VITE_AUTH_REDIRECT_URI as string) || window.location.origin;
+
+const clientId =  "70c57ebf-c461-4c21-ad98-706fb9b0f05b" as string;
+const tenantId = "99a51936-ff2a-4a4f-9029-8273ea890147";
+const redirectUri =  window.location.origin;
 
 export const msalConfig: Configuration = {
   auth: {
