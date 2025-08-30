@@ -17,6 +17,7 @@ import { login, logout } from "./authClient";
 import LoginScreen from "./LoginScreen";
 import { WEAVIATE_LOGO_DATA } from "./assets/logo";
 import UserAvatar from "./UserAvatar";
+import LogoutButton from "./LogoutButton";  
 
 export default () => {
   const [pathname, setPathname] = useState("/");
@@ -220,7 +221,7 @@ export default () => {
               >
                 {displayName || email}
               </div>
-              <a onClick={() => logout()}>Logout</a>
+             <LogoutButton />
             </>
           </div>
         )}
@@ -272,3 +273,5 @@ export default () => {
     </div>
   );
 };
+
+
