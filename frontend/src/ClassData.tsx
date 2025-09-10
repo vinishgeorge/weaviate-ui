@@ -255,11 +255,11 @@ export default function ({ pathname, propties }: any) {
           filter: (
             <>
               <LightFilter
-                onFinish={async (values) =>
-                  setCertainty(
-                    values.certainty ? values.certainty : defaultCertainty,
-                  )
-                }
+                onFinish={async (values) => {
+                  setCertainty(values.certainty ? values.certainty : defaultCertainty);
+                  // Trigger a reload so changes take effect immediately
+                  ref.current?.reload();
+                }}
               >
                 <ProFormSlider
                   name="certainty"

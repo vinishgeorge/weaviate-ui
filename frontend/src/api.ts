@@ -29,7 +29,7 @@ export const getClass = async (
   limit: number,
   keyword: string,
   certainty: number,
-  properties: [any],
+  properties: string[],
   tenant?: string,
 ) => {
   const queryParams = new URLSearchParams({
