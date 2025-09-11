@@ -37,6 +37,13 @@ export default function ({ pathname, propties }: any) {
   const [modalMode, setModalMode] = useState("insert");
   const [currentRecord, setCurrentRecord] = useState<any>({});
   const [form] = Form.useForm();
+  // Advanced search state
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedOn, setAdvancedOn] = useState(false);
+  const [advancedMode, setAdvancedMode] = useState<"keyword" | "exact">("keyword");
+  const [advKeyword, setAdvKeyword] = useState("");
+  const [advSelectedFields, setAdvSelectedFields] = useState<string[]>(propertyNames);
+  const [advEquals, setAdvEquals] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!className) return;
@@ -45,6 +52,11 @@ export default function ({ pathname, propties }: any) {
       setSelectedTenant(undefined);
     });
   }, [pathname]);
+
+  // Keep advanced fields in sync with schema
+  useEffect(() => {
+    setAdvSelectedFields(propertyNames);
+  }, [pathname, propties.length]);
 
   let columns = [];
   columns.push({
@@ -204,14 +216,32 @@ export default function ({ pathname, propties }: any) {
           const offset = (params.current - 1) * params.pageSize;
           const limit = params.pageSize;
 
+          // Decide which search mode/params to send
+          const useAdvanced = advancedOn;
+          const mode = useAdvanced ? advancedMode : undefined;
+          const keywordToSend = useAdvanced
+            ? advancedMode === "keyword"
+              ? advKeyword
+              : ""
+            : keyword;
+          const fieldsToSend = useAdvanced && advancedMode === "keyword" ? advSelectedFields : undefined;
+          const equalsToSend = useAdvanced && advancedMode === "exact"
+            ? Object.fromEntries(
+                Object.entries(advEquals || {}).filter(([_, v]) => v !== undefined && String(v).trim() !== ""),
+              )
+            : undefined;
+
           let clzData = await getClass(
             collection,
             offset,
             limit,
-            keyword,
+            keywordToSend,
             certainty,
             propertyNames,
             selectedTenant,
+            mode,
+            fieldsToSend,
+            equalsToSend,
           );
 
           const rows = Array.isArray(clzData?.data) ? clzData.data : [];
@@ -242,6 +272,14 @@ export default function ({ pathname, propties }: any) {
             <Button type="primary" key="insert" onClick={handleInsert}>
               Insert
             </Button>,
+            <Button key="advanced" onClick={() => setAdvancedOpen(true)}>
+              Advanced Search
+            </Button>,
+            advancedOn ? (
+              <Button key="clear-advanced" onClick={() => { setAdvancedOn(false); setAdvKeyword(""); setAdvEquals({}); ref.current?.reload(); }}>
+                Clear Filters
+              </Button>
+            ) : null,
             <Button danger key="delete" onClick={handleDeleteCollection}>
               Delete Collection
             </Button>,
@@ -315,6 +353,73 @@ export default function ({ pathname, propties }: any) {
             </Form.Item>
           ))}
         </Form>
+      </Modal>
+
+      {/* Advanced Search Modal */}
+      <Modal
+        title="Advanced Search"
+        open={advancedOpen}
+        onCancel={() => setAdvancedOpen(false)}
+        onOk={() => {
+          setAdvancedOn(true);
+          setAdvancedOpen(false);
+          ref.current?.reload();
+        }}
+        okText="Search"
+        width="70vw"
+      >
+        <div style={{ display: "flex", gap: 24 }}>
+          <div style={{ minWidth: 260 }}>
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>Mode</div>
+            <Select
+              value={advancedMode}
+              onChange={(v) => setAdvancedMode(v)}
+              options={[
+                { label: "Keyword (BM25)", value: "keyword" },
+                { label: "Exact Match (filters)", value: "exact" },
+              ]}
+              style={{ width: 240 }}
+            />
+          </div>
+          {advancedMode === "keyword" ? (
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>Keyword</div>
+              <Input
+                placeholder="Enter keyword"
+                value={advKeyword}
+                onChange={(e) => setAdvKeyword(e.target.value)}
+                style={{ marginBottom: 16 }}
+              />
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>Search Fields</div>
+              <Select
+                mode="multiple"
+                value={advSelectedFields}
+                onChange={setAdvSelectedFields}
+                options={propertyNames.map((p: string) => ({ label: p, value: p }))}
+                style={{ width: "100%" }}
+                placeholder="Select properties to search"
+              />
+            </div>
+          ) : (
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>Exact Match Values</div>
+              <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 8 }}>
+                {propertyNames.map((name: string) => (
+                  <React.Fragment key={name}>
+                    <div style={{ alignSelf: "center" }}>{name}</div>
+                    <Input
+                      placeholder="Exact value"
+                      value={advEquals[name] || ""}
+                      onChange={(e) =>
+                        setAdvEquals((s) => ({ ...s, [name]: e.target.value }))
+                      }
+                    />
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

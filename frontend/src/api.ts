@@ -31,6 +31,9 @@ export const getClass = async (
   certainty: number,
   properties: string[],
   tenant?: string,
+  searchMode?: "keyword" | "exact",
+  searchFields?: string[],
+  equals?: Record<string, any>,
 ) => {
   const queryParams = new URLSearchParams({
     certainty: certainty.toString(),
@@ -41,14 +44,20 @@ export const getClass = async (
   if (tenant) {
     queryParams.append("tenant", tenant);
   }
+  if (searchMode) {
+    queryParams.append("search_mode", searchMode);
+  }
   const headers = {
     ...(await authHeaders()),
     "Content-Type": "application/json",
   };
+  const body: any = { properties };
+  if (searchFields && searchFields.length) body.search_fields = searchFields;
+  if (equals && Object.keys(equals).length) body.equals = equals;
   return fetch(`${host}/class/${encodeURIComponent(className)}?${queryParams.toString()}`, {
     method: "POST",
     headers,
-    body: JSON.stringify(properties),
+    body: JSON.stringify(body),
   })
     .then(async (response) => {
       if (!response.ok) {

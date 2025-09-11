@@ -9,6 +9,7 @@ from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from weaviate.classes.init import Auth
+from weaviate.classes.query import Filter as WFilter
 from uuid import uuid4
 from typing import Any, Dict
 
@@ -81,6 +82,10 @@ def get_class_data(
     certainty: float = 0.65,
     properties: list[str] | None = None,
     tenant: str | None = None,
+    # Advanced search (optional)
+    search_mode: str | None = None,  # 'keyword' | 'exact'
+    search_fields: list[str] | None = None,
+    equals: Dict[str, Any] | None = None,
     _: dict = Depends(validate_jwt),
 ):
     logger.info(keyword)
@@ -107,10 +112,41 @@ def get_class_data(
     paginate = {"limit": limit, "offset": offset}
 
     # When searching by keyword, ensure properties are returned.
-    # The v4 client requires explicit return_properties for near_text.
+    # The v4 client requires explicit return_properties for near_text/bm25.
     return_props = {"return_properties": properties} if properties else {}
 
-    if keyword:
+    # Normalize search_mode
+    mode = (search_mode or "").strip().lower() or None
+
+    # Build filter for exact search if provided
+    where_filter = None
+    if equals and isinstance(equals, dict) and len(equals) > 0:
+        parts = []
+        for prop, val in equals.items():
+            if val is None or (isinstance(val, str) and val.strip() == ""):
+                continue
+            parts.append(WFilter.by_property(prop).equal(val))
+        if parts:
+            where_filter = WFilter.all_of(parts)
+
+    if mode == "exact" and where_filter is not None:
+        response = tenant_collection.query.fetch_objects(filters=where_filter, **paginate)
+        count_response = tenant_collection.aggregate.over_all(total_count=True, filters=where_filter)
+    elif mode == "keyword" and keyword:
+        bm25_kwargs = {"query": keyword, "limit": limit, "offset": offset}
+        if search_fields:
+            bm25_kwargs["properties"] = search_fields
+        if return_props:
+            bm25_kwargs.update(return_props)
+        response = tenant_collection.query.bm25(**bm25_kwargs)
+        try:
+            agg_kwargs = {"total_count": True, "query": keyword}
+            count_response = tenant_collection.aggregate.bm25(**agg_kwargs)  # type: ignore[attr-defined]
+        except Exception:
+            class Dummy:
+                total_count = len(getattr(response, "objects", []) or [])
+            count_response = Dummy()
+    elif keyword:
         query = {"query": keyword, "certainty": certainty}
         metadata = {"return_metadata": ["certainty", "distance"]}
         try:
@@ -142,9 +178,13 @@ def get_class_data(
                 count_response = Dummy()
     else:
         # fetch_objects returns objects including properties by default
-        # (no explicit return_properties parameter supported for this call).
-        response = tenant_collection.query.fetch_objects(**paginate)
-        count_response = tenant_collection.aggregate.over_all(total_count=True)
+        # (with optional filters if equals provided but empty mode)
+        if where_filter is not None:
+            response = tenant_collection.query.fetch_objects(filters=where_filter, **paginate)
+            count_response = tenant_collection.aggregate.over_all(total_count=True, filters=where_filter)
+        else:
+            response = tenant_collection.query.fetch_objects(**paginate)
+            count_response = tenant_collection.aggregate.over_all(total_count=True)
 
     # Normalize response objects to plain JSON serializable dicts
     objects = getattr(response, "objects", []) or []
